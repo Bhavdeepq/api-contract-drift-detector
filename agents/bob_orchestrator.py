@@ -46,6 +46,7 @@ import textwrap
 from pathlib import Path
 
 from drift_engine.changes import DriftChange, Severity
+from drift_engine.impact import analyze_repository_impacts
 from drift_engine.models import Operation, Parameter, RequestBody, Response, Schema
 from drift_engine.remediation_context import build_remediation_context
 from drift_engine.remediation_models import (
@@ -254,6 +255,50 @@ def verify_remediation(
         tests_passed=result.returncode == 0,
         test_output=test_output,
     )
+
+
+def verify_impact_resolved(
+    repository_path: str | Path,
+    drift_changes: tuple[DriftChange, ...],
+    reference_tokens: tuple[str, ...],
+) -> dict[str, int]:
+    """Re-run impact analysis and count how many matches remain for each token.
+
+    This is the correct verification signal for consumer-code remediation.
+    ``verify_remediation()`` measures whether OpenAPI contract drift records
+    disappear — but a ``REMOVED_FIELD`` drift exists because the API changed,
+    not because consumer code still references the field.  This function
+    measures the consumer side: whether source-code references to specific
+    tokens (field names, parameter names, endpoint paths) have been removed.
+
+    Call this **after** Bob edits the mutable repository files to confirm the
+    references are genuinely gone.
+
+    Args:
+        repository_path:  Root of the consumer repository to scan.  This must
+                          be the **mutable** remediation-demo directory, never
+                          the frozen test-fixture directory.
+        drift_changes:    The drift changes to scan against (the same tuple
+                          that was used when the pre-remediation context was
+                          built).
+        reference_tokens: The exact identifier strings to check, e.g.
+                          ``("email",)``.
+
+    Returns:
+        A dict mapping each token in ``reference_tokens`` to the number of
+        ``ImpactMatch`` records still found for it.  A value of ``0`` means
+        that token has been fully remediated in all scanned files.
+
+    Example::
+
+        counts = verify_impact_resolved(DEMO_REPO, drift_changes, ("email",))
+        assert counts["email"] == 0  # all email references removed
+    """
+    matches = analyze_repository_impacts(repository_path, drift_changes)
+    return {
+        token: sum(1 for m in matches if m.matched_reference == token)
+        for token in reference_tokens
+    }
 
 
 # ── Bob integration entry point ───────────────────────────────────────────────
