@@ -11,10 +11,14 @@ from .models import (
     Schema,
 )
 from .parser import ContractParseError, parse_openapi_contract
+from .changes import ChangeType, DriftChange, Severity
+from .detector import compare_contracts
 
 __all__ = [
     "ApiContract",
+    "ChangeType",
     "ContractParseError",
+    "DriftChange",
     "Endpoint",
     "Field",
     "Operation",
@@ -22,5 +26,7 @@ __all__ = [
     "RequestBody",
     "Response",
     "Schema",
+    "Severity",
+    "compare_contracts",
     "parse_openapi_contract",
 ]

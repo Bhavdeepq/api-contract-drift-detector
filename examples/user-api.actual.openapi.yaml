@@ -1,0 +1,40 @@
+openapi: 3.0.3
+info:
+  title: User API actual implementation
+  version: 1.1.0
+paths:
+  /users:
+    post:
+      responses:
+        '201':
+          description: User created
+  /users/{userId}:
+    get:
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: includeDetails
+          in: query
+          required: true
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [name]
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: integer
+                  nickname:
+                    type: string
+        '202':
+          description: User lookup pending
