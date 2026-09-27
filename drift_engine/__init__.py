@@ -13,6 +13,8 @@ from .models import (
 from .parser import ContractParseError, parse_openapi_contract
 from .changes import ChangeType, DriftChange, Severity
 from .detector import compare_contracts
+from .impact import analyze_repository_impacts
+from .impact_models import ImpactConfidence, ImpactMatch
 
 __all__ = [
     "ApiContract",
@@ -21,6 +23,8 @@ __all__ = [
     "DriftChange",
     "Endpoint",
     "Field",
+    "ImpactConfidence",
+    "ImpactMatch",
     "Operation",
     "Parameter",
     "RequestBody",
@@ -28,5 +32,6 @@ __all__ = [
     "Schema",
     "Severity",
     "compare_contracts",
+    "analyze_repository_impacts",
     "parse_openapi_contract",
 ]
