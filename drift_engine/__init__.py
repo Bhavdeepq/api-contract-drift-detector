@@ -16,10 +16,17 @@ from .detector import compare_contracts
 from .impact import analyze_repository_impacts
 from .impact_models import ImpactConfidence, ImpactMatch
 
-from .remediation_models import AffectedFile, OperationDiff, RemediationContext
+from .remediation_models import (
+    ActionStatus,
+    AffectedFile,
+    OperationDiff,
+    RemediationContext,
+    VerificationResult,
+)
 from .remediation_context import build_remediation_context
 
 __all__ = [
+    "ActionStatus",
     "AffectedFile",
     "ApiContract",
     "ChangeType",
@@ -37,6 +44,7 @@ __all__ = [
     "Response",
     "Schema",
     "Severity",
+    "VerificationResult",
     "analyze_repository_impacts",
     "build_remediation_context",
     "compare_contracts",

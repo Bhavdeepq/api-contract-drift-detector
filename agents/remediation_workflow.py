@@ -1,18 +1,22 @@
 """Bob remediation workflow entry point.
 
 This module is Step 5 of the planned six-step IBM Bob workflow described in
-agents/README.md.  It currently produces a structured remediation plan from a
+agents/README.md.  It produces a structured remediation plan from a
 RemediationContext without modifying any files or calling an external model.
 
-The Bob integration boundary is the ``run_remediation`` function: once the real
-IBM Bob 2.0 workflow is ready, replace the plan-building logic inside that
-function with a Bob invocation while keeping the signature and the
-RemediationContext input contract unchanged.
+Layer boundary
+--------------
+``run_remediation`` is deterministic Python — no Bob dependency.
+``serialize_plan`` converts the plan to a JSON-serialisable dict so that the
+Bob orchestration layer (``agents/bob_orchestrator``) can write it to disk and
+read it back as the hand-off artefact between the two layers.
 """
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
+from pathlib import Path
 
 from drift_engine.changes import ChangeType, Severity
 from drift_engine.remediation_models import AffectedFile, RemediationContext
@@ -84,6 +88,64 @@ class RemediationPlan:
     def affected_file_paths(self) -> tuple[str, ...]:
         """Deduplicated, sorted file paths that have at least one action."""
         return tuple(sorted({a.file_path for a in self.actions}))
+
+
+# ── Serialisation (Python layer → Bob layer hand-off) ────────────────────────
+
+
+def serialize_plan(plan: RemediationPlan) -> list[dict]:
+    """Convert a RemediationPlan to a JSON-serialisable list of dicts.
+
+    Each dict contains only plain Python types (str, int) so the result can be
+    passed directly to ``json.dumps``.  No Bob-specific fields are included —
+    this is pure data serialisation.
+
+    Intended use::
+
+        plan = run_remediation(context)
+        with open("remediation_plan.json", "w") as fh:
+            json.dump(serialize_plan(plan), fh, indent=2)
+
+    Args:
+        plan: A :class:`RemediationPlan` produced by :func:`run_remediation`.
+
+    Returns:
+        A list of dicts, one per :class:`RemediationAction`, ordered
+        identically to ``plan.actions``.
+    """
+    return [
+        {
+            "file_path": action.file_path,
+            "line_number": action.line_number,
+            "matched_reference": action.matched_reference,
+            "endpoint": action.endpoint,
+            "method": action.method,
+            "severity": action.severity.value,
+            "change_type": action.change_type.value,
+            "affected_code": action.affected_code,
+            "proposed_change": action.proposed_change,
+            "reason": action.reason,
+        }
+        for action in plan.actions
+    ]
+
+
+def write_plan(plan: RemediationPlan, path: str | Path) -> None:
+    """Serialise a RemediationPlan to a JSON file at ``path``.
+
+    Creates parent directories if they do not exist.  Overwrites any existing
+    file at the same path.
+
+    Args:
+        plan: A :class:`RemediationPlan` produced by :func:`run_remediation`.
+        path: Destination file path (typically ``remediation_plan.json``).
+    """
+    destination = Path(path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(
+        json.dumps(serialize_plan(plan), indent=2),
+        encoding="utf-8",
+    )
 
 
 # ── Workflow entry point ──────────────────────────────────────────────────────

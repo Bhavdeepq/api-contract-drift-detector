@@ -3,10 +3,58 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 
 from .changes import DriftChange
 from .impact_models import ImpactMatch
 from .models import ApiContract, Operation
+
+
+# ── Outcome types (used by the Bob orchestration layer) ──────────────────────
+
+
+class ActionStatus(str, Enum):
+    """Outcome of a single remediation action after Bob processes it."""
+
+    PROPOSED = "proposed"
+    """Plan built; not yet acted on by Bob."""
+
+    RESOLVED = "resolved"
+    """Bob applied a fix and post-edit drift verification confirmed the change is gone."""
+
+    UNRESOLVED = "unresolved"
+    """Bob could not safely determine a correct fix and left the file unchanged."""
+
+    VERIFICATION_FAILED = "verification_failed"
+    """Bob applied a fix but the drift change is still present after re-detection,
+    or the test suite failed after the edit."""
+
+
+@dataclass(frozen=True)
+class VerificationResult:
+    """Outcome of re-running the deterministic pipeline after Bob edits a file.
+
+    Produced by ``bob_orchestrator.verify_remediation()``.  Pure data — no Bob
+    dependency.
+    """
+
+    resolved_changes: tuple[DriftChange, ...]
+    """Drift changes that were present before the edit and are absent after it."""
+
+    remaining_changes: tuple[DriftChange, ...]
+    """Drift changes that are still present after the edit."""
+
+    tests_passed: bool
+    """True if the relevant test command exited with code 0."""
+
+    test_output: str
+    """Captured stdout+stderr from the test run (empty string if tests were not run)."""
+
+    @property
+    def fully_resolved(self) -> bool:
+        """True when every drift change targeted by this verification is resolved
+        and the test suite passed."""
+        return len(self.remaining_changes) == 0 and self.tests_passed
 
 
 @dataclass(frozen=True)
