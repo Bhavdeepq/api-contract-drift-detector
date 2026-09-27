@@ -5,3 +5,6 @@ const api = axios.create({
 })
 
 export const checkBackendHealth = () => api.get('/health')
+export const getContracts = () => api.get('/api/contracts')
+export const analyzeContract = selection => api.post('/api/analysis', selection)
+export const createRemediationPlan = () => api.post('/api/remediation')
