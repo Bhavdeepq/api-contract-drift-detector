@@ -1,9 +1,26 @@
-"""Planned engine for identifying API contract drift.
+"""Deterministic OpenAPI contract parsing models and utilities."""
 
-Future responsibilities:
-- OpenAPI parsing
-- endpoint and schema comparison
-- breaking-change detection
-- consumer impact analysis
-- drift report generation
-"""
+from .models import (
+    ApiContract,
+    Endpoint,
+    Field,
+    Operation,
+    Parameter,
+    RequestBody,
+    Response,
+    Schema,
+)
+from .parser import ContractParseError, parse_openapi_contract
+
+__all__ = [
+    "ApiContract",
+    "ContractParseError",
+    "Endpoint",
+    "Field",
+    "Operation",
+    "Parameter",
+    "RequestBody",
+    "Response",
+    "Schema",
+    "parse_openapi_contract",
+]
